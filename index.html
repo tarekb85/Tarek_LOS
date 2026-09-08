@@ -285,6 +285,42 @@
   .password-msg{font-size:12px;margin-top:6px;min-height:14px;}
   .password-msg.ok{color:var(--ok);}
   .password-msg.err{color:var(--bad);}
+
+  /* Today section */
+  .today-section{margin-bottom:36px;}
+  .today-row{
+    display:flex;align-items:center;gap:12px;
+    background:var(--panel);border:1px solid var(--line);
+    border-left:3px solid var(--warn);
+    border-radius:10px;padding:11px 14px;margin-bottom:6px;
+    font-size:13.5px;
+  }
+  .today-row.overdue{border-left-color:var(--bad);}
+  .today-check{
+    width:20px;height:20px;flex-shrink:0;
+    border-radius:5px;border:1.5px solid var(--text-dim);
+    background:none;cursor:pointer;
+  }
+  .today-check:hover{border-color:var(--sage);}
+  .today-body{flex:1;min-width:0;}
+  .today-title{font-weight:500;color:var(--text);}
+  .today-meta{
+    font-size:11px;color:var(--text-dim);margin-top:2px;
+    font-family:'JetBrains Mono',monospace;
+    display:flex;gap:10px;flex-wrap:wrap;
+  }
+  .today-source{
+    font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--slate);border:1px solid var(--slate);
+    border-radius:5px;padding:1px 6px;
+  }
+  .today-badge{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;letter-spacing:.03em;
+    padding:3px 7px;border-radius:5px;white-space:nowrap;
+  }
+  .today-badge.warn{background:rgba(232,184,75,0.15);color:var(--warn);}
+  .today-badge.bad{background:rgba(226,104,95,0.15);color:var(--bad);}
 </style>
 </head>
 <body>
@@ -308,6 +344,14 @@
   </header>
 
   <div class="status-bar" id="statusBar"></div>
+
+  <div class="section today-section" id="todaySection" style="display:none">
+    <div class="section-head">
+      <h2>Today</h2>
+      <span class="count" id="todayCount"></span>
+    </div>
+    <div id="todayList"></div>
+  </div>
 
   <div class="section">
     <div class="section-head"><h2>Pets</h2><span class="count" id="petsCount"></span></div>
@@ -562,6 +606,68 @@ function render(){
     const st = computeStatus(item);
     if (st.level === 'bad') overdue++; else if (st.level === 'warn') dueSoon++; else ok++;
   };
+
+  // Today view — aggregate overdue + due-soon from recurring items AND reminders with a due date
+  const todayItems = [];
+  items.forEach(it => {
+    const st = computeStatus(it);
+    if (st.level === 'bad' || st.level === 'warn') {
+      todayItems.push({
+        kind: 'recurring',
+        id: it.id,
+        cadence: it.cadence_months,
+        title: it.owner_name || it.label,
+        sourceLabel: it.category === 'pet' ? 'Pet' : it.category === 'plant' ? 'Plant' : 'Other',
+        badge: st.label,
+        level: st.level,
+        sortKey: st.daysLeft
+      });
+    }
+  });
+  reminders.forEach(r => {
+    if (!r.due_date) return;
+    const today = new Date(new Date().toISOString().slice(0,10) + "T00:00:00");
+    const due = new Date(r.due_date + "T00:00:00");
+    const daysLeft = daysBetween(today, due);
+    if (daysLeft > 7) return;
+    let level, badge;
+    if (daysLeft < 0) { level='bad'; badge = `${Math.abs(daysLeft)}d overdue`; }
+    else if (daysLeft === 0) { level='warn'; badge = 'due today'; }
+    else { level='warn'; badge = `due in ${daysLeft}d`; }
+    todayItems.push({
+      kind: 'reminder',
+      id: r.id,
+      cadence: r.cadence_months || null,
+      title: r.title,
+      sourceLabel: 'Reminder',
+      badge, level,
+      sortKey: daysLeft
+    });
+  });
+  todayItems.sort((a,b) => a.sortKey - b.sortKey);
+  const todaySection = document.getElementById('todaySection');
+  if (todayItems.length === 0) {
+    todaySection.style.display = 'none';
+  } else {
+    todaySection.style.display = 'block';
+    document.getElementById('todayCount').textContent = `${todayItems.length} needing attention`;
+    document.getElementById('todayList').innerHTML = todayItems.map(t => {
+      const handler = t.kind === 'recurring'
+        ? `markDone('${t.id}', ${t.cadence})`
+        : `markReminderDone('${t.id}', ${t.cadence || 'null'})`;
+      return `
+      <div class="today-row ${t.level === 'bad' ? 'overdue' : ''}">
+        <button class="today-check" onclick="${handler}" title="mark done"></button>
+        <div class="today-body">
+          <div class="today-title">${t.title}</div>
+          <div class="today-meta">
+            <span class="today-source">${t.sourceLabel}</span>
+          </div>
+        </div>
+        <span class="today-badge ${t.level}">${t.badge}</span>
+      </div>`;
+    }).join('');
+  }
 
   const petItems = items.filter(i => i.category === 'pet');
   petItems.forEach(tally);
