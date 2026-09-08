@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tarek's Life Operating System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#15171c;
+    --panel:#1c1f26;
+    --panel-2:#22262f;
+    --line:#2b2f39;
+    --text:#e9ebf0;
+    --text-dim:#8b90a0;
+    --amber:#e8a15c;
+    --sage:#7cb083;
+    --slate:#6a8caf;
+    --ok:#5cb88a;
+    --warn:#e8b84b;
+    --bad:#e2685f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding:24px 16px 60px;
+  }
+  .wrap{max-width:720px;margin:0 auto;}
+
+  header{margin-bottom:28px;}
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.12em;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:28px;
+    letter-spacing:-0.01em;
+  }
+  .subtitle{color:var(--text-dim);font-size:13.5px;margin-top:4px;}
+
+  .status-bar{
+    display:flex;gap:10px;margin:20px 0 28px;flex-wrap:wrap;
+  }
+  .status-pill{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    padding:6px 12px;
+    border-radius:20px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    display:flex;align-items:center;gap:6px;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;}
+
+  .section{margin-bottom:32px;}
+  .section-head{
+    display:flex;align-items:baseline;gap:10px;margin-bottom:12px;
+    padding-bottom:8px;border-bottom:1px solid var(--line);
+  }
+  .section-head h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:15px;font-weight:600;
+    text-transform:uppercase;letter-spacing:0.06em;
+  }
+  .section-head .count{color:var(--text-dim);font-size:12px;font-family:'JetBrains Mono',monospace;}
+
+  .cards{display:flex;flex-direction:column;gap:10px;}
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px;
+    display:flex;
+    gap:16px;
+    align-items:center;
+    transition:border-color .15s;
+  }
+  .card:hover{border-color:#3a3f4c;}
+
+  .gauge{
+    position:relative;
+    width:64px;height:64px;flex-shrink:0;
+  }
+  .gauge svg{transform:rotate(-90deg);}
+  .gauge-label{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;font-weight:500;
+    color:var(--text-dim);
+  }
+
+  .card-body{flex:1;min-width:0;}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;}
+  .card-name{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;}
+  .card-treat{color:var(--text-dim);font-size:12.5px;margin-top:1px;}
+  .badge{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;letter-spacing:0.04em;
+    padding:3px 8px;border-radius:6px;white-space:nowrap;
+    flex-shrink:0;
+  }
+  .badge.ok{background:rgba(92,184,138,0.15);color:var(--ok);}
+  .badge.warn{background:rgba(232,184,75,0.15);color:var(--warn);}
+  .badge.bad{background:rgba(226,104,95,0.15);color:var(--bad);}
+
+  .card-meta{
+    display:flex;gap:14px;margin-top:8px;
+    font-size:11.5px;color:var(--text-dim);
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  .card-actions{display:flex;gap:8px;margin-top:10px;}
+  .btn{
+    font-family:'Inter',sans-serif;
+    font-size:12px;font-weight:500;
+    padding:6px 12px;border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    color:var(--text);
+    cursor:pointer;
+    transition:background .15s, border-color .15s;
+  }
+  .btn:hover{background:#2a2e38;border-color:#3a3f4c;}
+  .btn.primary{
+    background:var(--sage);border-color:var(--sage);color:#0f1410;font-weight:600;
+  }
+  .btn.primary:hover{filter:brightness(1.08);}
+  .btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+  .history-toggle{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;color:var(--text-dim);
+    background:none;border:none;cursor:pointer;text-decoration:underline;
+    padding:0;margin-top:8px;
+  }
+  .history{
+    margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);
+    font-size:11.5px;color:var(--text-dim);display:none;
+  }
+  .history.open{display:block;}
+  .history div{padding:2px 0;}
+
+  .empty{
+    background:var(--panel);border:1px dashed var(--line);border-radius:14px;
+    padding:20px;text-align:center;color:var(--text-dim);font-size:13px;
+  }
+
+  .sync-note{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;color:var(--text-dim);
+    text-align:center;margin-top:30px;
+  }
+  .sync-note.error{color:var(--bad);}
+
+  .place-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px;
+  }
+  .place-name{
+    font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px;
+    margin-bottom:10px;color:var(--slate);
+  }
+  .note-row{
+    display:flex;align-items:flex-start;gap:10px;
+    padding:7px 0;border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .note-row:last-of-type{border-bottom:none;}
+  .note-check{
+    width:18px;height:18px;flex-shrink:0;margin-top:1px;
+    border-radius:5px;border:1.5px solid var(--text-dim);
+    background:none;cursor:pointer;
+  }
+  .note-check:hover{border-color:var(--sage);}
+  .note-text{flex:1;line-height:1.4;}
+  .note-date{color:var(--text-dim);font-size:10.5px;font-family:'JetBrains Mono',monospace;margin-top:2px;}
+  .note-empty{color:var(--text-dim);font-size:12.5px;padding:6px 0;}
+  .add-note-row{
+    display:flex;gap:8px;margin-top:10px;
+  }
+  .add-note-row input{
+    flex:1;background:var(--panel-2);border:1px solid var(--line);
+    border-radius:8px;padding:7px 10px;color:var(--text);
+    font-family:'Inter',sans-serif;font-size:13px;
+  }
+  .add-note-row input:focus{outline:none;border-color:var(--slate);}
+  .add-place-card{
+    background:var(--panel);border:1px dashed var(--line);border-radius:14px;
+    padding:14px 16px;display:flex;gap:8px;
+  }
+  .add-place-card input{
+    flex:1;background:var(--panel-2);border:1px solid var(--line);
+    border-radius:8px;padding:7px 10px;color:var(--text);
+    font-family:'Inter',sans-serif;font-size:13px;
+  }
+
+  .debts-table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .debts-table th{
+    font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--text-dim);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--panel-2);
+  }
+  .debts-table td{padding:11px 12px;border-bottom:1px solid var(--line);font-size:13.5px;}
+  .debts-table tr:last-child td{border-bottom:none;}
+  .debts-table .amt{font-family:'JetBrains Mono',monospace;color:var(--amber);}
+  .debts-table .settled .amt{color:var(--ok);text-decoration:line-through;opacity:.6;}
+  .debts-table .settled td:not(.amt-cell){opacity:.5;}
+  .debts-total{
+    font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);
+    text-align:right;padding:10px 14px 0;
+  }
+  .debts-total b{color:var(--amber);}
+  .mini-btn{
+    font-family:'Inter',sans-serif;font-size:11px;padding:4px 9px;border-radius:6px;
+    border:1px solid var(--line);background:var(--panel-2);color:var(--text);cursor:pointer;
+  }
+  .add-debt-row{display:flex;gap:8px;margin-top:12px;}
+  .add-debt-row input{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+    padding:7px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;
+  }
+  .add-debt-row input[name="person"]{flex:2;}
+  .add-debt-row input[name="amount"]{flex:1;}
+
+  .reminder-row{
+    display:flex;align-items:flex-start;gap:10px;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;margin-bottom:8px;
+  }
+  .reminder-check{
+    width:18px;height:18px;flex-shrink:0;margin-top:2px;
+    border-radius:5px;border:1.5px solid var(--text-dim);background:none;cursor:pointer;
+  }
+  .reminder-check:hover{border-color:var(--sage);}
+  .reminder-body{flex:1;}
+  .reminder-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14.5px;}
+  .reminder-meta{font-size:11.5px;color:var(--text-dim);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+  .cat-tag{
+    font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--slate);
+    border:1px solid var(--slate);border-radius:5px;padding:1px 6px;margin-right:6px;
+  }
+  .add-reminder-row{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+  .add-reminder-row input, .add-reminder-row select{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+    padding:8px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;
+  }
+
+  .login-wrap{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:20px;
+  }
+  .login-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:32px 24px;width:100%;max-width:340px;
+  }
+  .login-card h1{font-size:20px;margin-bottom:4px;}
+  .login-card .subtitle{margin-bottom:20px;}
+  .login-card input{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);
+    border-radius:8px;padding:11px 12px;color:var(--text);
+    font-family:'Inter',sans-serif;font-size:14px;margin-bottom:10px;
+  }
+  .login-card input:focus{outline:none;border-color:var(--slate);}
+  .login-card .btn.primary{width:100%;padding:11px;font-size:13.5px;margin-top:4px;}
+  .login-error{color:var(--bad);font-size:12.5px;margin-top:10px;min-height:16px;}
+  .logout-link{
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-dim);
+    background:none;border:none;cursor:pointer;text-decoration:underline;
+    position:absolute;top:24px;right:16px;
+  }
+  .password-msg{font-size:12px;margin-top:6px;min-height:14px;}
+  .password-msg.ok{color:var(--ok);}
+  .password-msg.err{color:var(--bad);}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-wrap">
+  <div class="login-card">
+    <h1>Tarek's Life Operating System 😄</h1>
+    <div class="subtitle">Sign in to continue</div>
+    <input type="email" id="loginEmail" placeholder="Email" autocomplete="username">
+    <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+    <button class="btn primary" onclick="handleLogin()">Sign in</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<div id="dashboard" class="wrap" style="display:none;position:relative;">
+  <button class="logout-link" onclick="handleLogout()">sign out</button>
+  <header>
+    <h1>Tarek's Life Operating System 😄</h1>
+    <div class="subtitle">Pets, plants, and whatever else keeps this place running.</div>
+  </header>
+
+  <div class="status-bar" id="statusBar"></div>
+
+  <div class="section">
+    <div class="section-head"><h2>Pets</h2><span class="count" id="petsCount"></span></div>
+    <div class="cards" id="petsCards"></div>
+  </div>
+
+
+  <div class="section">
+    <div class="section-head"><h2>Plants</h2><span class="count" id="plantsCount"></span></div>
+    <div class="cards" id="plantsCards"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><h2>Other</h2><span class="count" id="otherCount"></span></div>
+    <div class="cards" id="otherCards"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><h2>Places</h2><span class="count" id="placesCount"></span></div>
+    <div class="cards" id="placesCards"></div>
+    <div class="add-place-card">
+      <input type="text" id="newPlaceName" placeholder="Place name (e.g. IKEA)">
+      <button class="btn primary" onclick="addPlace()">Add place</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><h2>Reminders</h2><span class="count" id="remindersCount"></span></div>
+    <div id="remindersList"></div>
+    <div class="panel" style="background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:14px 16px;">
+      <div class="add-reminder-row">
+        <input type="text" id="newReminderTitle" placeholder="What do you need to remember?">
+        <select id="newReminderCategory">
+          <option value="health">Health</option>
+          <option value="family">Family</option>
+          <option value="work">Work</option>
+          <option value="birthday">Birthday</option>
+          <option value="school">Kids/School</option>
+          <option value="general" selected>General</option>
+        </select>
+        <input type="date" id="newReminderDate" placeholder="Due date (optional)">
+        <button class="btn primary" onclick="addReminder()">Add reminder</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><h2>Who Owes Me</h2><span class="count" id="debtsCount"></span></div>
+    <table class="debts-table" id="debtsTable">
+      <thead><tr><th>Person</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+      <tbody id="debtsBody"></tbody>
+    </table>
+    <div class="debts-total" id="debtsTotal"></div>
+    <div class="panel" style="background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:14px 16px;margin-top:10px;">
+      <div class="add-debt-row">
+        <input type="text" name="person" id="newDebtPerson" placeholder="Name">
+        <input type="number" name="amount" id="newDebtAmount" placeholder="€ Amount" step="0.01">
+        <button class="btn primary" onclick="addDebt()">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sync-note" id="syncNote">syncing…</div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://pmcnajwssthlgnkbxyzj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_RKfVLjfDBc6CI5BYTDX8ag_eeZ6O5gG";
+const REST = `${SUPABASE_URL}/rest/v1`;
+const AUTH = `${SUPABASE_URL}/auth/v1`;
+
+let session = null; // { access_token, refresh_token, expires_at }
+
+function authHeaders(){
+  return {
+    apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${session ? session.access_token : SUPABASE_KEY}`,
+    'Content-Type': 'application/json'
+  };
+}
+
+function saveSession(s){
+  session = s;
+  try { localStorage.setItem('los_session', JSON.stringify(s)); } catch(e) {}
+}
+
+function clearSession(){
+  session = null;
+  try { localStorage.removeItem('los_session'); } catch(e) {}
+}
+
+function loadSavedSession(){
+  try {
+    const raw = localStorage.getItem('los_session');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return null;
+}
+
+async function handleLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = 'Enter email and password.'; return; }
+  try {
+    const r = await fetch(`${AUTH}/token?grant_type=password`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error_description || data.msg || 'Sign in failed');
+    saveSession({ access_token: data.access_token, refresh_token: data.refresh_token });
+    showDashboard();
+  } catch (e) {
+    errEl.textContent = e.message;
+  }
+}
+
+function handleLogout(){
+  clearSession();
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+async function tryRestoreSession(){
+  const saved = loadSavedSession();
+  if (!saved) return false;
+  // Verify/refresh the session is still valid
+  try {
+    const r = await fetch(`${AUTH}/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: saved.refresh_token })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error('expired');
+    saveSession({ access_token: data.access_token, refresh_token: data.refresh_token });
+    return true;
+  } catch (e) {
+    clearSession();
+    return false;
+  }
+}
+
+function showDashboard(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  loadState();
+}
+
+(async () => {
+  const restored = await tryRestoreSession();
+  if (restored) {
+    showDashboard();
+  } else {
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+})();
+
+let items = [];   // recurring_items, each with .recurring_log[]
+let places = [];  // places, each with .place_notes[]
+
+function daysBetween(a, b){
+  return Math.round((b - a) / 86400000);
+}
+function addMonths(dateStr, months){
+  const d = new Date(dateStr + "T00:00:00");
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0,10);
+}
+function fmt(dateStr){
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+
+function computeStatus(item){
+  const today = new Date(new Date().toISOString().slice(0,10) + "T00:00:00");
+  const last = new Date(item.last_done + "T00:00:00");
+  const next = new Date(item.next_due + "T00:00:00");
+  const totalSpan = next - last;
+  const elapsed = today - last;
+  let frac = totalSpan > 0 ? elapsed / totalSpan : 1;
+  const daysLeft = daysBetween(today, next);
+  let level, label;
+  if (daysLeft < 0){ level = 'bad'; label = `${Math.abs(daysLeft)}d overdue`; frac = 1; }
+  else if (daysLeft <= 7){ level = 'warn'; label = daysLeft === 0 ? 'due today' : `due in ${daysLeft}d`; }
+  else { level = 'ok'; label = `due in ${daysLeft}d`; }
+  frac = Math.max(0, Math.min(1, frac));
+  return { level, label, frac, daysLeft };
+}
+
+function gaugeSVG(frac, level){
+  const r = 26, c = 2*Math.PI*r;
+  const colors = { ok: 'var(--ok)', warn: 'var(--warn)', bad: 'var(--bad)' };
+  const offset = c * (1 - frac);
+  return `
+  <svg width="64" height="64" viewBox="0 0 64 64">
+    <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--line)" stroke-width="5"/>
+    <circle cx="32" cy="32" r="${r}" fill="none" stroke="${colors[level]}" stroke-width="5"
+      stroke-dasharray="${c}" stroke-dashoffset="${offset}" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function cardHTML(item){
+  const st = computeStatus(item);
+  const pct = Math.round(st.frac * 100);
+  const historyId = `hist-${item.id}`;
+  const log = (item.recurring_log || []).slice().sort((a,b) => a.log_date < b.log_date ? 1 : -1).slice(0,6);
+  const historyRows = log.map(l =>
+    `<div>${fmt(l.log_date)} — ${l.note || 'logged'}</div>`
+  ).join('') || '<div>No history yet.</div>';
+  const displayName = item.owner_name || item.label;
+  const treatLabel = item.owner_name ? item.label : (item.category === 'plant' ? 'Feeding' : 'Recurring');
+
+  return `
+  <div class="card">
+    <div class="gauge">
+      ${gaugeSVG(st.frac, st.level)}
+      <div class="gauge-label">${pct}%</div>
+    </div>
+    <div class="card-body">
+      <div class="card-top">
+        <div>
+          <div class="card-name">${displayName}</div>
+          <div class="card-treat">${treatLabel} · every ${item.cadence_months}mo</div>
+        </div>
+        <span class="badge ${st.level}">${st.label}</span>
+      </div>
+      <div class="card-meta">
+        <span>last: ${fmt(item.last_done)}</span>
+        <span>next: ${fmt(item.next_due)}</span>
+      </div>
+      <div class="card-actions">
+        <button class="btn primary" onclick="markDone('${item.id}', ${item.cadence_months})">Mark done today</button>
+        <button class="history-toggle" onclick="toggleHistory('${historyId}')">history</button>
+      </div>
+      <div class="history" id="${historyId}">${historyRows}</div>
+    </div>
+  </div>`;
+}
+
+function toggleHistory(id){
+  document.getElementById(id).classList.toggle('open');
+}
+
+function render(){
+  let overdue = 0, dueSoon = 0, ok = 0;
+
+  const tally = (item) => {
+    const st = computeStatus(item);
+    if (st.level === 'bad') overdue++; else if (st.level === 'warn') dueSoon++; else ok++;
+  };
+
+  const petItems = items.filter(i => i.category === 'pet');
+  petItems.forEach(tally);
+  document.getElementById('petsCards').innerHTML = petItems.map(cardHTML).join('') || '<div class="empty">No pets tracked yet.</div>';
+  document.getElementById('petsCount').textContent = `${petItems.length} tracked`;
+
+  const plantItems = items.filter(i => i.category === 'plant');
+  plantItems.forEach(tally);
+  document.getElementById('plantsCards').innerHTML = plantItems.map(cardHTML).join('') || '<div class="empty">No plant schedules yet.</div>';
+  document.getElementById('plantsCount').textContent = `${plantItems.length} tracked`;
+
+  const otherItems = items.filter(i => i.category === 'other');
+  otherItems.forEach(tally);
+  document.getElementById('otherCards').innerHTML = otherItems.map(cardHTML).join('') || '<div class="empty">Nothing here yet — water filters, smoke detectors, HVAC filters, etc. can go here.</div>';
+  document.getElementById('otherCount').textContent = `${otherItems.length} tracked`;
+
+  // Places
+  const placeCards = places.map(p => {
+    const notes = (p.place_notes || []).filter(n => n.status !== 'done');
+    const rows = notes.map(n => `
+      <div class="note-row">
+        <button class="note-check" onclick="resolveNote('${n.id}')" title="mark done"></button>
+        <div class="note-text">${n.note}<div class="note-date">added ${fmt(n.note_date)}</div></div>
+      </div>`).join('') || '<div class="note-empty">Nothing pending.</div>';
+    return `
+    <div class="place-card">
+      <div class="place-name">${p.name}</div>
+      ${rows}
+      <div class="add-note-row">
+        <input type="text" id="noteInput-${p.id}" placeholder="Add a reminder for next time...">
+        <button class="btn" onclick="addNote('${p.id}')">Add</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById('placesCards').innerHTML = placeCards.join('') || '<div class="empty">No places yet — add one below.</div>';
+  document.getElementById('placesCount').textContent = `${places.length} tracked`;
+
+  // Reminders
+  const catLabels = { health:'Health', family:'Family', work:'Work', birthday:'Birthday', school:'Kids/School', general:'General' };
+  const reminderRows = reminders.map(r => {
+    const meta = [];
+    if (r.due_date) meta.push(`due ${fmt(r.due_date)}`);
+    if (r.cadence_months) meta.push(`every ${r.cadence_months}mo`);
+    return `
+    <div class="reminder-row">
+      <button class="reminder-check" onclick="markReminderDone('${r.id}', ${r.cadence_months || 'null'})" title="mark done"></button>
+      <div class="reminder-body">
+        <div class="reminder-title"><span class="cat-tag">${catLabels[r.category] || r.category}</span>${r.title}</div>
+        ${meta.length ? `<div class="reminder-meta">${meta.join(' · ')}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('remindersList').innerHTML = reminderRows || '<div class="empty">Nothing pending.</div>';
+  document.getElementById('remindersCount').textContent = `${reminders.length} pending`;
+
+  // Debts
+  let totalOwed = 0;
+  const debtRows = debts.map(d => {
+    if (d.status === 'owed') totalOwed += parseFloat(d.amount);
+    return `
+    <tr class="${d.status === 'settled' ? 'settled' : ''}">
+      <td>${d.person_name}</td>
+      <td class="amt amt-cell">€${parseFloat(d.amount).toFixed(2)}</td>
+      <td>${d.status}</td>
+      <td>${d.status === 'owed' ? `<button class="mini-btn" onclick="settleDebt('${d.id}')">Mark settled</button>` : ''}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('debtsBody').innerHTML = debtRows || '<tr><td colspan="4" class="empty" style="border:none;">No debts tracked.</td></tr>';
+  document.getElementById('debtsCount').textContent = `${debts.filter(d=>d.status==='owed').length} owed`;
+  document.getElementById('debtsTotal').innerHTML = `Total outstanding: <b>€${totalOwed.toFixed(2)}</b>`;
+
+  document.getElementById('statusBar').innerHTML = `
+    <div class="status-pill"><span class="dot" style="background:var(--bad)"></span>${overdue} overdue</div>
+    <div class="status-pill"><span class="dot" style="background:var(--warn)"></span>${dueSoon} due soon</div>
+    <div class="status-pill"><span class="dot" style="background:var(--ok)"></span>${ok} on track</div>
+  `;
+}
+
+async function markDone(itemId, cadenceMonths){
+  const note = document.getElementById('syncNote');
+  const today = new Date().toISOString().slice(0,10);
+  const nextDue = addMonths(today, cadenceMonths);
+  try {
+    const r1 = await fetch(`${REST}/recurring_items?id=eq.${itemId}`, {
+      method: 'PATCH', headers: authHeaders(),
+      body: JSON.stringify({ last_done: today, next_due: nextDue })
+    });
+    if (!r1.ok) throw new Error(`update ${r1.status}`);
+    const r2 = await fetch(`${REST}/recurring_log`, {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ item_id: itemId, log_date: today, note: 'Marked done via dashboard' })
+    });
+    if (!r2.ok) throw new Error(`log ${r2.status}`);
+    note.textContent = 'saved'; note.classList.remove('error');
+    await loadState();
+  } catch (e) {
+    note.textContent = 'Save failed: ' + e.message; note.classList.add('error');
+  }
+}
+
+async function resolveNote(noteId){
+  const note = document.getElementById('syncNote');
+  try {
+    const r = await fetch(`${REST}/place_notes?id=eq.${noteId}`, {
+      method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ status: 'done' })
+    });
+    if (!r.ok) throw new Error(`update ${r.status}`);
+    note.textContent = 'saved'; note.classList.remove('error');
+    await loadState();
+  } catch (e) {
+    note.textContent = 'Save failed: ' + e.message; note.classList.add('error');
+  }
+}
+
+async function addNote(placeId){
+  const input = document.getElementById(`noteInput-${placeId}`);
+  const text = input.value.trim();
+  if (!text) return;
+  const note = document.getElementById('syncNote');
+  const today = new Date().toISOString().slice(0,10);
+  try {
+    const r = await fetch(`${REST}/place_notes`, {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ place_id: placeId, note_date: today, note: text, status: 'pending' })
+    });
+    if (!r.ok) throw new Error(`insert ${r.status}`);
+    note.textContent = 'saved'; note.classList.remove('error');
+    await loadState();
+  } catch (e) {
+    note.textContent = 'Save failed: ' + e.message; note.classList.add('error');
+  }
+}
+
+async function addPlace(){
+  const input = document.getElementById('newPlaceName');
+  const name = input.value.trim();
+  if (!name) return;
+  const note = document.getElementById('syncNote');
+  try {
+    const r = await fetch(`${REST}/places`, {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ name })
+    });
+    if (!r.ok) throw new Error(`insert ${r.status}`);
+    input.value = '';
+    note.textContent = 'saved'; note.classList.remove('error');
+    await loadState();
+  } catch (e) {
+    note.textContent = 'Save failed: ' + e.message; note.classList.add('error');
+  }
+}
+
+async function markReminderDone(id, cadenceMonths){
+  const note = document.getElementById('syncNote');
+  try {
+    let body;
+    if (cadenceMonths) {
+      const today = new Date().toISOString().slice(0,10);
+      body = { last_done: today, next_due: addMonths(today, cadenceMonths), due_date: addMonths(today, cadenceMonths) };
+    } else {
+      body = { status: 'done' };
+    }
+    const r = await fetch(`${REST}/reminders?id=eq.${id}`, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify(body) });
+    if (!r.ok) throw new Error(`update ${r.status}`);
+    note.textContent = 'saved'; note.classList.remove('error');
+    await loadState();
+  } catch (e) {
+    note.textContent = 'Save failed: ' + e.message; note.classList.add('error');
+  }
+}
+
+async function addReminder(){
+  const title = document.getElementById('newReminderTitle').value.trim();
+  const category = document.getElementById('newReminderCategory').value;
+  const dueDate = document.getElementById('newReminderDate').value || null;
+  if (!title) return;
+  const note = document.getElementById('syncNote');
+  try {
+    const r = await fetch(`${REST}/reminders`, {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ title, category, due_date: dueDate })
+    });
+    if (!r.ok) throw new Error(`insert ${r.status}`);
+    document.getElementById('newReminderTitle').value = '';
+    document.getElementById('newReminderDate').value = '';
+    note.textContent = 'saved'; note.classList.remove('error');
+    await loadState();
+  } catch (e) {
+    note.textContent = 'Save failed: ' + e.message; note.classList.add('error');
+  }
+}
+
+async function settleDebt(id){
+  const note = document.getElementById('syncNote');
+  try {
+    const today = new Date().toISOString().slice(0,10);
+    const r = await fetch(`${REST}/debts?id=eq.${id}`, {
+      method: 'PATCH', headers: authHeaders(),
+      body: JSON.stringify({ status: 'settled', settled_date: today })
+    });
+    if (!r.ok) throw new Error(`update ${r.status}`);
+    note.textContent = 'saved'; note.classList.remove('error');
+    await loadState();
+  } catch (e) {
+    note.textContent = 'Save failed: ' + e.message; note.classList.add('error');
+  }
+}
+
+async function addDebt(){
+  const person = document.getElementById('newDebtPerson').value.trim();
+  const amount = parseFloat(document.getElementById('newDebtAmount').value);
+  if (!person || !amount) return;
+  const note = document.getElementById('syncNote');
+  try {
+    const r = await fetch(`${REST}/debts`, {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ person_name: person, amount })
+    });
+    if (!r.ok) throw new Error(`insert ${r.status}`);
+    document.getElementById('newDebtPerson').value = '';
+    document.getElementById('newDebtAmount').value = '';
+    note.textContent = 'saved'; note.classList.remove('error');
+    await loadState();
+  } catch (e) {
+    note.textContent = 'Save failed: ' + e.message; note.classList.add('error');
+  }
+}
+
+let reminders = [];
+let debts = [];
+
+async function loadState(){
+  const note = document.getElementById('syncNote');
+  try {
+    const [itemsRes, placesRes, remindersRes, debtsRes] = await Promise.all([
+      fetch(`${REST}/recurring_items?select=*,recurring_log(log_date,note)`, { headers: authHeaders() }),
+      fetch(`${REST}/places?select=*,place_notes(*)`, { headers: authHeaders() }),
+      fetch(`${REST}/reminders?status=eq.pending&order=due_date.asc.nullslast`, { headers: authHeaders() }),
+      fetch(`${REST}/debts?order=status.asc,created_at.desc`, { headers: authHeaders() })
+    ]);
+    if (!itemsRes.ok) throw new Error(`items ${itemsRes.status}`);
+    if (!placesRes.ok) throw new Error(`places ${placesRes.status}`);
+    if (!remindersRes.ok) throw new Error(`reminders ${remindersRes.status}`);
+    if (!debtsRes.ok) throw new Error(`debts ${debtsRes.status}`);
+    items = await itemsRes.json();
+    places = await placesRes.json();
+    reminders = await remindersRes.json();
+    debts = await debtsRes.json();
+    render();
+    note.textContent = 'synced with Supabase';
+    note.classList.remove('error');
+  } catch (e) {
+    note.textContent = 'Could not sync — ' + e.message;
+    note.classList.add('error');
+  }
+}
+
+</script>
+</body>
+</html>
