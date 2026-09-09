@@ -321,6 +321,74 @@
   }
   .today-badge.warn{background:rgba(232,184,75,0.15);color:var(--warn);}
   .today-badge.bad{background:rgba(226,104,95,0.15);color:var(--bad);}
+
+  /* Collapsible sections */
+  .section-head.collapsible{cursor:pointer;user-select:none;}
+  .section-head.collapsible:hover h2{color:var(--sage);}
+  .chevron{
+    display:inline-block;transition:transform .18s ease;
+    color:var(--text-dim);margin-left:auto;font-size:12px;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .section.collapsed .chevron{transform:rotate(-90deg);}
+  .section.collapsed .section-body{display:none;}
+  .section-summary{
+    font-size:12px;color:var(--text-dim);
+    font-family:'JetBrains Mono',monospace;
+    margin-left:10px;letter-spacing:.02em;
+  }
+  .section-summary .warn{color:var(--warn);}
+  .section-summary .bad{color:var(--bad);}
+
+  /* Debts — new card design */
+  .debts-headline{
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:16px 18px;margin-bottom:12px;
+    display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  }
+  .debts-headline-amt{
+    font-family:'JetBrains Mono',monospace;
+    font-size:28px;font-weight:600;color:var(--amber);
+  }
+  .debts-headline-label{
+    font-size:11px;color:var(--text-dim);
+    text-transform:uppercase;letter-spacing:.06em;
+  }
+  .debt-card{
+    display:flex;align-items:center;gap:12px;
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:11px 14px;margin-bottom:6px;
+  }
+  .debt-card.settled{opacity:.45;}
+  .debt-card.settled .debt-amt{text-decoration:line-through;color:var(--ok);}
+  .debt-body{flex:1;min-width:0;}
+  .debt-person{font-weight:500;color:var(--text);font-size:14px;}
+  .debt-note{
+    font-size:11.5px;color:var(--text-dim);margin-top:2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .debt-amt{
+    font-family:'JetBrains Mono',monospace;
+    font-size:15px;color:var(--amber);white-space:nowrap;
+  }
+  .debt-actions{display:flex;gap:6px;flex-shrink:0;}
+  .debt-btn{
+    background:none;border:1px solid var(--line);
+    color:var(--text-dim);border-radius:6px;
+    padding:6px 10px;font-size:11.5px;cursor:pointer;
+    font-family:inherit;
+  }
+  .debt-btn:hover{border-color:var(--sage);color:var(--sage);}
+  .debt-btn.settle{border-color:var(--sage);color:var(--sage);}
+  .debt-btn.settle:hover{background:var(--sage);color:#000;}
+  .debt-btn.delete:hover{border-color:var(--bad);color:var(--bad);}
+  .add-debt-row-v2{
+    display:flex;gap:8px;flex-wrap:wrap;
+  }
+  .add-debt-row-v2 input[name="person"]{flex:1 1 120px;min-width:100px;}
+  .add-debt-row-v2 input[name="amount"]{flex:0 0 100px;}
+  .add-debt-row-v2 input[name="note"]{flex:2 1 200px;min-width:140px;}
+  .add-debt-row-v2 button{flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -369,47 +437,69 @@
     <div class="cards" id="otherCards"></div>
   </div>
 
-  <div class="section">
-    <div class="section-head"><h2>Places</h2><span class="count" id="placesCount"></span></div>
-    <div class="cards" id="placesCards"></div>
-    <div class="add-place-card">
-      <input type="text" id="newPlaceName" placeholder="Place name (e.g. IKEA)">
-      <button class="btn primary" onclick="addPlace()">Add place</button>
+  <div class="section" id="section-places">
+    <div class="section-head collapsible" onclick="toggleSection('places')">
+      <h2>Places</h2>
+      <span class="count" id="placesCount"></span>
+      <span class="section-summary" id="placesSummary"></span>
+      <span class="chevron">▼</span>
     </div>
-  </div>
-
-  <div class="section">
-    <div class="section-head"><h2>Reminders</h2><span class="count" id="remindersCount"></span></div>
-    <div id="remindersList"></div>
-    <div class="panel" style="background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:14px 16px;">
-      <div class="add-reminder-row">
-        <input type="text" id="newReminderTitle" placeholder="What do you need to remember?">
-        <select id="newReminderCategory">
-          <option value="health">Health</option>
-          <option value="family">Family</option>
-          <option value="work">Work</option>
-          <option value="birthday">Birthday</option>
-          <option value="school">Kids/School</option>
-          <option value="general" selected>General</option>
-        </select>
-        <input type="date" id="newReminderDate" placeholder="Due date (optional)">
-        <button class="btn primary" onclick="addReminder()">Add reminder</button>
+    <div class="section-body">
+      <div class="cards" id="placesCards"></div>
+      <div class="add-place-card">
+        <input type="text" id="newPlaceName" placeholder="Place name (e.g. IKEA)">
+        <button class="btn primary" onclick="addPlace()">Add place</button>
       </div>
     </div>
   </div>
 
-  <div class="section">
-    <div class="section-head"><h2>Who Owes Me</h2><span class="count" id="debtsCount"></span></div>
-    <table class="debts-table" id="debtsTable">
-      <thead><tr><th>Person</th><th>Amount</th><th>Status</th><th></th></tr></thead>
-      <tbody id="debtsBody"></tbody>
-    </table>
-    <div class="debts-total" id="debtsTotal"></div>
-    <div class="panel" style="background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:14px 16px;margin-top:10px;">
-      <div class="add-debt-row">
-        <input type="text" name="person" id="newDebtPerson" placeholder="Name">
-        <input type="number" name="amount" id="newDebtAmount" placeholder="€ Amount" step="0.01">
-        <button class="btn primary" onclick="addDebt()">Add</button>
+  <div class="section" id="section-reminders">
+    <div class="section-head collapsible" onclick="toggleSection('reminders')">
+      <h2>Reminders</h2>
+      <span class="count" id="remindersCount"></span>
+      <span class="section-summary" id="remindersSummary"></span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div id="remindersList"></div>
+      <div class="panel" style="background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:14px 16px;">
+        <div class="add-reminder-row">
+          <input type="text" id="newReminderTitle" placeholder="What do you need to remember?">
+          <select id="newReminderCategory">
+            <option value="health">Health</option>
+            <option value="family">Family</option>
+            <option value="work">Work</option>
+            <option value="birthday">Birthday</option>
+            <option value="school">Kids/School</option>
+            <option value="general" selected>General</option>
+          </select>
+          <input type="date" id="newReminderDate" placeholder="Due date (optional)">
+          <button class="btn primary" onclick="addReminder()">Add reminder</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="section-debts">
+    <div class="section-head collapsible" onclick="toggleSection('debts')">
+      <h2>Who Owes Me</h2>
+      <span class="count" id="debtsCount"></span>
+      <span class="section-summary" id="debtsSummary"></span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="debts-headline">
+        <span class="debts-headline-label">Total outstanding</span>
+        <span class="debts-headline-amt" id="debtsHeadline">€0.00</span>
+      </div>
+      <div id="debtsList"></div>
+      <div class="panel" style="background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:14px 16px;margin-top:10px;">
+        <div class="add-debt-row-v2">
+          <input type="text" name="person" id="newDebtPerson" placeholder="Name">
+          <input type="number" name="amount" id="newDebtAmount" placeholder="€" step="0.01">
+          <input type="text" name="note" id="newDebtNote" placeholder="What for? (optional)">
+          <button class="btn primary" onclick="addDebt()">Add</button>
+        </div>
       </div>
     </div>
   </div>
@@ -501,6 +591,7 @@ async function tryRestoreSession(){
 function showDashboard(){
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
+  restoreCollapsedState();
   loadState();
 }
 
@@ -723,21 +814,47 @@ function render(){
   document.getElementById('remindersList').innerHTML = reminderRows || '<div class="empty">Nothing pending.</div>';
   document.getElementById('remindersCount').textContent = `${reminders.length} pending`;
 
-  // Debts
+  // Reminders summary — surface overdue + due-soon counts inline
+  const now = new Date(new Date().toISOString().slice(0,10) + "T00:00:00");
+  let remOverdue = 0, remSoon = 0;
+  reminders.forEach(r => {
+    if (!r.due_date) return;
+    const d = daysBetween(now, new Date(r.due_date + "T00:00:00"));
+    if (d < 0) remOverdue++; else if (d <= 7) remSoon++;
+  });
+  const remSumBits = [];
+  if (remOverdue) remSumBits.push(`<span class="bad">${remOverdue} overdue</span>`);
+  if (remSoon) remSumBits.push(`<span class="warn">${remSoon} due soon</span>`);
+  document.getElementById('remindersSummary').innerHTML = remSumBits.join(' · ');
+
+  // Debts — new card layout
   let totalOwed = 0;
-  const debtRows = debts.map(d => {
+  const debtCards = debts.map(d => {
     if (d.status === 'owed') totalOwed += parseFloat(d.amount);
+    const noteHtml = d.note ? `<div class="debt-note">${d.note}</div>` : '';
+    const actions = d.status === 'owed'
+      ? `<button class="debt-btn settle" onclick="settleDebt('${d.id}')">Settle</button>
+         <button class="debt-btn delete" onclick="deleteDebt('${d.id}')" title="remove">×</button>`
+      : `<button class="debt-btn delete" onclick="deleteDebt('${d.id}')">Remove</button>`;
     return `
-    <tr class="${d.status === 'settled' ? 'settled' : ''}">
-      <td>${d.person_name}</td>
-      <td class="amt amt-cell">€${parseFloat(d.amount).toFixed(2)}</td>
-      <td>${d.status}</td>
-      <td>${d.status === 'owed' ? `<button class="mini-btn" onclick="settleDebt('${d.id}')">Mark settled</button>` : ''}</td>
-    </tr>`;
+    <div class="debt-card ${d.status === 'settled' ? 'settled' : ''}">
+      <div class="debt-body">
+        <div class="debt-person">${d.person_name}</div>
+        ${noteHtml}
+      </div>
+      <div class="debt-amt">€${parseFloat(d.amount).toFixed(2)}</div>
+      <div class="debt-actions">${actions}</div>
+    </div>`;
   }).join('');
-  document.getElementById('debtsBody').innerHTML = debtRows || '<tr><td colspan="4" class="empty" style="border:none;">No debts tracked.</td></tr>';
-  document.getElementById('debtsCount').textContent = `${debts.filter(d=>d.status==='owed').length} owed`;
-  document.getElementById('debtsTotal').innerHTML = `Total outstanding: <b>€${totalOwed.toFixed(2)}</b>`;
+  document.getElementById('debtsList').innerHTML = debtCards || '<div class="empty">No debts tracked.</div>';
+  const owedCount = debts.filter(d=>d.status==='owed').length;
+  document.getElementById('debtsCount').textContent = `${owedCount} owed`;
+  document.getElementById('debtsHeadline').textContent = `€${totalOwed.toFixed(2)}`;
+  document.getElementById('debtsSummary').innerHTML = owedCount ? `<span class="warn">€${totalOwed.toFixed(2)} outstanding</span>` : '';
+
+  // Places summary — pending notes across all places
+  const pendingNotes = placeNotes.filter(n => !n.resolved_at).length;
+  document.getElementById('placesSummary').innerHTML = pendingNotes ? `<span class="warn">${pendingNotes} pending</span>` : '';
 
   document.getElementById('statusBar').innerHTML = `
     <div class="status-pill"><span class="dot" style="background:var(--bad)"></span>${overdue} overdue</div>
@@ -878,21 +995,56 @@ async function settleDebt(id){
 async function addDebt(){
   const person = document.getElementById('newDebtPerson').value.trim();
   const amount = parseFloat(document.getElementById('newDebtAmount').value);
+  const noteText = document.getElementById('newDebtNote').value.trim();
   if (!person || !amount) return;
-  const note = document.getElementById('syncNote');
+  const syncNote = document.getElementById('syncNote');
   try {
+    const payload = { person_name: person, amount };
+    if (noteText) payload.note = noteText;
     const r = await fetch(`${REST}/debts`, {
       method: 'POST', headers: authHeaders(),
-      body: JSON.stringify({ person_name: person, amount })
+      body: JSON.stringify(payload)
     });
     if (!r.ok) throw new Error(`insert ${r.status}`);
     document.getElementById('newDebtPerson').value = '';
     document.getElementById('newDebtAmount').value = '';
+    document.getElementById('newDebtNote').value = '';
+    syncNote.textContent = 'saved'; syncNote.classList.remove('error');
+    await loadState();
+  } catch (e) {
+    syncNote.textContent = 'Save failed: ' + e.message; syncNote.classList.add('error');
+  }
+}
+
+async function deleteDebt(id){
+  if (!confirm('Remove this entry?')) return;
+  const note = document.getElementById('syncNote');
+  try {
+    const r = await fetch(`${REST}/debts?id=eq.${id}`, {
+      method: 'DELETE', headers: authHeaders()
+    });
+    if (!r.ok) throw new Error(`delete ${r.status}`);
     note.textContent = 'saved'; note.classList.remove('error');
     await loadState();
   } catch (e) {
-    note.textContent = 'Save failed: ' + e.message; note.classList.add('error');
+    note.textContent = 'Delete failed: ' + e.message; note.classList.add('error');
   }
+}
+
+// Collapsible sections — persist state in localStorage
+function toggleSection(name){
+  const el = document.getElementById('section-' + name);
+  el.classList.toggle('collapsed');
+  const state = JSON.parse(localStorage.getItem('los_collapsed') || '{}');
+  state[name] = el.classList.contains('collapsed');
+  localStorage.setItem('los_collapsed', JSON.stringify(state));
+}
+
+function restoreCollapsedState(){
+  const state = JSON.parse(localStorage.getItem('los_collapsed') || '{}');
+  ['places','reminders','debts'].forEach(name => {
+    if (state[name]) document.getElementById('section-' + name)?.classList.add('collapsed');
+  });
 }
 
 let reminders = [];
