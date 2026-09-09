@@ -853,7 +853,7 @@ function render(){
   document.getElementById('debtsSummary').innerHTML = owedCount ? `<span class="warn">€${totalOwed.toFixed(2)} outstanding</span>` : '';
 
   // Places summary — pending notes across all places
-  const pendingNotes = placeNotes.filter(n => !n.resolved_at).length;
+  const pendingNotes = places.reduce((sum, p) => sum + (p.place_notes || []).filter(n => n.status !== 'done').length, 0);
   document.getElementById('placesSummary').innerHTML = pendingNotes ? `<span class="warn">${pendingNotes} pending</span>` : '';
 
   document.getElementById('statusBar').innerHTML = `
