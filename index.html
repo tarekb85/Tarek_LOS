@@ -174,7 +174,14 @@
   .place-name{
     font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px;
     margin-bottom:10px;color:var(--slate);
+    display:flex;align-items:center;justify-content:space-between;
   }
+  .place-delete{
+    background:none;border:1px solid var(--line);color:var(--text-dim);
+    border-radius:6px;width:22px;height:22px;font-size:14px;line-height:1;
+    cursor:pointer;flex-shrink:0;
+  }
+  .place-delete:hover{border-color:var(--bad);color:var(--bad);}
   .note-row{
     display:flex;align-items:flex-start;gap:10px;
     padding:7px 0;border-bottom:1px solid var(--line);
@@ -777,7 +784,7 @@ function render(){
 
   // Places
   const placeCards = places.map(p => {
-    const notes = (p.place_notes || []).filter(n => n.status !== 'done');
+    const notes = (p.place_notes || []).filter(n => n.status === 'pending');
     const rows = notes.map(n => `
       <div class="note-row">
         <button class="note-check" onclick="resolveNote('${n.id}')" title="mark done"></button>
@@ -785,7 +792,7 @@ function render(){
       </div>`).join('') || '<div class="note-empty">Nothing pending.</div>';
     return `
     <div class="place-card">
-      <div class="place-name">${p.name}</div>
+      <div class="place-name">${p.name}<button class="place-delete" onclick="deletePlace('${p.id}','${p.name.replace(/'/g,"\\'")}')" title="remove place">×</button></div>
       ${rows}
       <div class="add-note-row">
         <input type="text" id="noteInput-${p.id}" placeholder="Add a reminder for next time...">
@@ -853,7 +860,7 @@ function render(){
   document.getElementById('debtsSummary').innerHTML = owedCount ? `<span class="warn">€${totalOwed.toFixed(2)} outstanding</span>` : '';
 
   // Places summary — pending notes across all places
-  const pendingNotes = places.reduce((sum, p) => sum + (p.place_notes || []).filter(n => n.status !== 'done').length, 0);
+  const pendingNotes = places.reduce((sum, p) => sum + (p.place_notes || []).filter(n => n.status === 'pending').length, 0);
   document.getElementById('placesSummary').innerHTML = pendingNotes ? `<span class="warn">${pendingNotes} pending</span>` : '';
 
   document.getElementById('statusBar').innerHTML = `
@@ -933,6 +940,26 @@ async function addPlace(){
     await loadState();
   } catch (e) {
     note.textContent = 'Save failed: ' + e.message; note.classList.add('error');
+  }
+}
+
+async function deletePlace(placeId, placeName){
+  if (!confirm(`Remove "${placeName}" and all its notes?`)) return;
+  const note = document.getElementById('syncNote');
+  try {
+    // No cascade delete on notes.place_id — remove attached notes first, or the FK blocks the place delete
+    const r1 = await fetch(`${REST}/notes?place_id=eq.${placeId}`, {
+      method: 'DELETE', headers: authHeaders()
+    });
+    if (!r1.ok) throw new Error(`delete notes ${r1.status}`);
+    const r2 = await fetch(`${REST}/places?id=eq.${placeId}`, {
+      method: 'DELETE', headers: authHeaders()
+    });
+    if (!r2.ok) throw new Error(`delete place ${r2.status}`);
+    note.textContent = 'saved'; note.classList.remove('error');
+    await loadState();
+  } catch (e) {
+    note.textContent = 'Delete failed: ' + e.message; note.classList.add('error');
   }
 }
 
