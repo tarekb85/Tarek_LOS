@@ -182,6 +182,32 @@
     cursor:pointer;flex-shrink:0;
   }
   .place-delete:hover{border-color:var(--bad);color:var(--bad);}
+
+  /* Type-to-confirm delete modal */
+  .confirm-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);
+    z-index:200;align-items:center;justify-content:center;padding:20px;
+  }
+  .confirm-overlay.open{display:flex;}
+  .confirm-box{
+    background:var(--panel);border:1px solid var(--bad);border-radius:14px;
+    padding:22px;max-width:340px;width:100%;
+  }
+  .confirm-box h3{font-size:16px;color:#fafafa;margin-bottom:6px;}
+  .confirm-box p{font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.5;}
+  .confirm-box p b{color:#fafafa;}
+  .confirm-box input{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);
+    border-radius:8px;padding:10px 12px;color:#e4e4e7;font-size:14px;
+    font-family:inherit;outline:none;margin-bottom:14px;
+  }
+  .confirm-box input:focus{border-color:var(--bad);}
+  .confirm-actions{display:flex;gap:8px;}
+  .confirm-actions button{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .confirm-cancel{background:none;border:1px solid var(--line);color:var(--text-dim);}
+  .confirm-delete{background:#3f1414;border:1px solid var(--bad);color:#fca5a5;}
+  .confirm-delete:disabled{opacity:.35;cursor:not-allowed;}
+  .confirm-delete:not(:disabled):hover{background:var(--bad);color:#1a0505;}
   .note-row{
     display:flex;align-items:flex-start;gap:10px;
     padding:7px 0;border-bottom:1px solid var(--line);
@@ -399,6 +425,18 @@
 </style>
 </head>
 <body>
+
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3>Remove place?</h3>
+    <p>This deletes <b id="confirmPlaceLabel"></b> and all its notes. Type the name below to confirm.</p>
+    <input type="text" id="confirmInput" autocomplete="off" placeholder="Type the place name">
+    <div class="confirm-actions">
+      <button class="confirm-cancel" onclick="closeDeleteConfirm()">Cancel</button>
+      <button class="confirm-delete" id="confirmDeleteBtn" disabled onclick="confirmDeletePlace()">Delete</button>
+    </div>
+  </div>
+</div>
 
 <div id="loginScreen" class="login-wrap">
   <div class="login-card">
@@ -792,7 +830,7 @@ function render(){
       </div>`).join('') || '<div class="note-empty">Nothing pending.</div>';
     return `
     <div class="place-card">
-      <div class="place-name">${p.name}<button class="place-delete" onclick="deletePlace('${p.id}','${p.name.replace(/'/g,"\\'")}')" title="remove place">×</button></div>
+      <div class="place-name">${p.name}<button class="place-delete" onclick="openDeleteConfirm('${p.id}','${p.name.replace(/'/g,"\\'")}')" title="remove place">×</button></div>
       ${rows}
       <div class="add-note-row">
         <input type="text" id="noteInput-${p.id}" placeholder="Add a reminder for next time...">
@@ -943,8 +981,31 @@ async function addPlace(){
   }
 }
 
-async function deletePlace(placeId, placeName){
-  if (!confirm(`Remove "${placeName}" and all its notes?`)) return;
+let pendingDeletePlace = null;
+
+function openDeleteConfirm(placeId, placeName){
+  pendingDeletePlace = { id: placeId, name: placeName };
+  document.getElementById('confirmPlaceLabel').textContent = placeName;
+  document.getElementById('confirmInput').value = '';
+  document.getElementById('confirmDeleteBtn').disabled = true;
+  document.getElementById('confirmOverlay').classList.add('open');
+  document.getElementById('confirmInput').focus();
+}
+
+function closeDeleteConfirm(){
+  pendingDeletePlace = null;
+  document.getElementById('confirmOverlay').classList.remove('open');
+}
+
+document.getElementById('confirmInput').addEventListener('input', (e) => {
+  const btn = document.getElementById('confirmDeleteBtn');
+  btn.disabled = !(pendingDeletePlace && e.target.value === pendingDeletePlace.name);
+});
+
+async function confirmDeletePlace(){
+  if (!pendingDeletePlace) return;
+  const { id: placeId, name: placeName } = pendingDeletePlace;
+  closeDeleteConfirm();
   const note = document.getElementById('syncNote');
   try {
     // No cascade delete on notes.place_id — remove attached notes first, or the FK blocks the place delete
