@@ -291,6 +291,11 @@
     background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
     padding:8px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;
   }
+  .shopping-group-label{
+    font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;
+    color:var(--text-dim);margin:12px 0 4px;
+  }
+  .shopping-group-label:first-child{margin-top:0;}
 
   .login-wrap{
     min-height:100vh;display:flex;align-items:center;justify-content:center;
@@ -520,6 +525,31 @@
           </select>
           <input type="date" id="newReminderDate" placeholder="Due date (optional)">
           <button class="btn primary" onclick="addReminder()">Add reminder</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="section-shopping">
+    <div class="section-head collapsible" onclick="toggleSection('shopping')">
+      <h2>Shopping List</h2>
+      <span class="count" id="shoppingCount"></span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div id="shoppingGroceries"></div>
+      <div id="shoppingGeneral"></div>
+      <div class="panel" style="background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:14px 16px;">
+        <div class="add-reminder-row">
+          <input type="text" id="newShoppingItem" placeholder="What do you need to buy?">
+          <select id="newShoppingCategory">
+            <option value="groceries">Groceries</option>
+            <option value="general" selected>General</option>
+          </select>
+          <select id="newShoppingPlace">
+            <option value="">No specific place</option>
+          </select>
+          <button class="btn primary" onclick="addShoppingItem()">Add</button>
         </div>
       </div>
     </div>
@@ -872,6 +902,30 @@ function render(){
   if (remSoon) remSumBits.push(`<span class="warn">${remSoon} due soon</span>`);
   document.getElementById('remindersSummary').innerHTML = remSumBits.join(' · ');
 
+  // Shopping list — grouped by category, each item independently checkable,
+  // same visual pattern as reminders. Optional place link shown as a tag.
+  const placeNameById = Object.fromEntries(places.map(p => [p.id, p.name]));
+  function shoppingRowsFor(cat, label) {
+    const rows = shoppingItems.filter(s => s.category === cat).map(s => `
+      <div class="reminder-row">
+        <button class="reminder-check" onclick="markShoppingDone('${s.id}')" title="mark done"></button>
+        <div class="reminder-body">
+          <div class="reminder-title">${s.item}${s.place_id && placeNameById[s.place_id] ? `<span class="cat-tag">${placeNameById[s.place_id]}</span>` : ''}</div>
+        </div>
+      </div>`).join('');
+    return `<div class="shopping-group-label">${label}</div>` + (rows || '<div class="empty">Nothing pending.</div>');
+  }
+  document.getElementById('shoppingGroceries').innerHTML = shoppingRowsFor('groceries', 'Groceries');
+  document.getElementById('shoppingGeneral').innerHTML = shoppingRowsFor('general', 'General');
+  document.getElementById('shoppingCount').textContent = `${shoppingItems.length} pending`;
+  const placeSelect = document.getElementById('newShoppingPlace');
+  if (placeSelect) {
+    const current = placeSelect.value;
+    placeSelect.innerHTML = '<option value="">No specific place</option>' +
+      places.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    placeSelect.value = current;
+  }
+
   // Debts — new card layout
   let totalOwed = 0;
   const debtCards = debts.map(d => {
@@ -1064,6 +1118,40 @@ async function addReminder(){
   }
 }
 
+async function markShoppingDone(id){
+  const note = document.getElementById('syncNote');
+  try {
+    const r = await fetch(`${REST}/shopping_items?id=eq.${id}`, {
+      method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ status: 'done' })
+    });
+    if (!r.ok) throw new Error(`update ${r.status}`);
+    note.textContent = 'saved'; note.classList.remove('error');
+    await loadState();
+  } catch (e) {
+    note.textContent = 'Save failed: ' + e.message; note.classList.add('error');
+  }
+}
+
+async function addShoppingItem(){
+  const item = document.getElementById('newShoppingItem').value.trim();
+  const category = document.getElementById('newShoppingCategory').value;
+  const placeId = document.getElementById('newShoppingPlace').value || null;
+  if (!item) return;
+  const note = document.getElementById('syncNote');
+  try {
+    const r = await fetch(`${REST}/shopping_items`, {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ item, category, place_id: placeId })
+    });
+    if (!r.ok) throw new Error(`insert ${r.status}`);
+    document.getElementById('newShoppingItem').value = '';
+    note.textContent = 'saved'; note.classList.remove('error');
+    await loadState();
+  } catch (e) {
+    note.textContent = 'Save failed: ' + e.message; note.classList.add('error');
+  }
+}
+
 async function settleDebt(id){
   const note = document.getElementById('syncNote');
   try {
@@ -1130,30 +1218,34 @@ function toggleSection(name){
 
 function restoreCollapsedState(){
   const state = JSON.parse(localStorage.getItem('los_collapsed') || '{}');
-  ['places','reminders','debts'].forEach(name => {
+  ['places','reminders','shopping','debts'].forEach(name => {
     if (state[name]) document.getElementById('section-' + name)?.classList.add('collapsed');
   });
 }
 
 let reminders = [];
+let shoppingItems = [];
 let debts = [];
 
 async function loadState(){
   const note = document.getElementById('syncNote');
   try {
-    const [itemsRes, placesRes, remindersRes, debtsRes] = await Promise.all([
+    const [itemsRes, placesRes, remindersRes, shoppingRes, debtsRes] = await Promise.all([
       fetch(`${REST}/recurring_items?select=*,recurring_log(log_date,note)`, { headers: authHeaders() }),
       fetch(`${REST}/places?select=*,place_notes:notes!place_id(*)&place_notes.category=eq.place`, { headers: authHeaders() }),
       fetch(`${REST}/reminders?status=eq.pending&order=due_date.asc.nullslast`, { headers: authHeaders() }),
+      fetch(`${REST}/shopping_items?status=eq.pending&order=category.asc,created_at.asc`, { headers: authHeaders() }),
       fetch(`${REST}/debts?order=status.asc,created_at.desc`, { headers: authHeaders() })
     ]);
     if (!itemsRes.ok) throw new Error(`items ${itemsRes.status}`);
     if (!placesRes.ok) throw new Error(`places ${placesRes.status}`);
     if (!remindersRes.ok) throw new Error(`reminders ${remindersRes.status}`);
+    if (!shoppingRes.ok) throw new Error(`shopping ${shoppingRes.status}`);
     if (!debtsRes.ok) throw new Error(`debts ${debtsRes.status}`);
     items = await itemsRes.json();
     places = await placesRes.json();
     reminders = await remindersRes.json();
+    shoppingItems = await shoppingRes.json();
     debts = await debtsRes.json();
     render();
     note.textContent = 'synced with Supabase';
