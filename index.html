@@ -49,9 +49,38 @@
   }
   .subtitle{color:var(--text-dim);font-size:13.5px;margin-top:4px;}
 
-  .status-bar{
-    display:flex;gap:10px;margin:20px 0 28px;flex-wrap:wrap;
+  .status-bar{margin:20px 0 28px;}
+  .hero{
+    background:linear-gradient(135deg,#202632 0%,#1a1d24 65%);
+    border:1px solid var(--line);border-radius:18px;padding:18px 16px 14px;
   }
+  .hero-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  .hero-greet{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;letter-spacing:-0.01em;}
+  .hero-date{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);}
+  .hero-line{color:var(--text-dim);font-size:13px;margin:5px 0 14px;}
+  .hero-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .hero-tile{
+    font:inherit;color:inherit;cursor:pointer;text-align:center;
+    background:var(--panel);border:1px solid var(--line);border-top:2px solid var(--line);
+    border-radius:12px;padding:11px 4px 9px;
+  }
+  .hero-tile:hover{background:var(--panel-2);}
+  .hero-tile .num{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;line-height:1.1;}
+  .hero-tile .lbl{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-top:5px;}
+  .hero-tile.bad{border-top-color:var(--bad);}   .hero-tile.bad .num{color:var(--bad);}
+  .hero-tile.warn{border-top-color:var(--warn);} .hero-tile.warn .num{color:var(--warn);}
+  .hero-tile.slate{border-top-color:var(--slate);} .hero-tile.slate .num{color:var(--slate);}
+  .hero-tile.sage{border-top-color:var(--sage);} .hero-tile.sage .num{color:var(--sage);}
+  .hero-tile.zero{border-top-color:var(--line);} .hero-tile.zero .num{color:var(--text-dim);}
+  .hero-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:12px;}
+  .hero-chip{
+    font:inherit;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);
+    background:transparent;border:1px solid var(--line);border-radius:12px;padding:3px 9px;
+  }
+  button.hero-chip{cursor:pointer;} button.hero-chip:hover{color:var(--text);border-color:var(--text-dim);}
+  .hero-tools{margin-left:auto;font-size:11px;color:var(--text-dim);}
+  .hero-tools a{cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);}
+  .hero-tools a:hover{color:var(--text);}
   .status-pill{
     font-family:'JetBrains Mono',monospace;
     font-size:12px;
@@ -463,28 +492,52 @@
 
   <div class="status-bar" id="statusBar"></div>
 
-  <div class="section today-section" id="todaySection" style="display:none">
-    <div class="section-head">
+  <div class="section today-section" id="section-today" style="display:none">
+    <div class="section-head collapsible" onclick="toggleSection('today')">
       <h2>Today</h2>
       <span class="count" id="todayCount"></span>
+      <span class="chevron">▼</span>
     </div>
-    <div id="todayList"></div>
+    <div class="section-body">
+      <div id="todayList"></div>
+    </div>
   </div>
 
-  <div class="section">
-    <div class="section-head"><h2>Pets</h2><span class="count" id="petsCount"></span></div>
-    <div class="cards" id="petsCards"></div>
+  <div class="section" id="section-pets">
+    <div class="section-head collapsible" onclick="toggleSection('pets')">
+      <h2>Pets</h2>
+      <span class="count" id="petsCount"></span>
+      <span class="section-summary" id="petsSummary"></span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="cards" id="petsCards"></div>
+    </div>
   </div>
 
 
-  <div class="section">
-    <div class="section-head"><h2>Plants</h2><span class="count" id="plantsCount"></span></div>
-    <div class="cards" id="plantsCards"></div>
+  <div class="section" id="section-plants">
+    <div class="section-head collapsible" onclick="toggleSection('plants')">
+      <h2>Plants</h2>
+      <span class="count" id="plantsCount"></span>
+      <span class="section-summary" id="plantsSummary"></span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="cards" id="plantsCards"></div>
+    </div>
   </div>
 
-  <div class="section">
-    <div class="section-head"><h2>Other</h2><span class="count" id="otherCount"></span></div>
-    <div class="cards" id="otherCards"></div>
+  <div class="section" id="section-other">
+    <div class="section-head collapsible" onclick="toggleSection('other')">
+      <h2>Other</h2>
+      <span class="count" id="otherCount"></span>
+      <span class="section-summary" id="otherSummary"></span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="cards" id="otherCards"></div>
+    </div>
   </div>
 
   <div class="section" id="section-places">
@@ -765,6 +818,61 @@ function toggleHistory(id){
   document.getElementById(id).classList.toggle('open');
 }
 
+function groupSummary(list){
+  let bad = 0, warn = 0;
+  list.forEach(i => { const st = computeStatus(i); if (st.level === 'bad') bad++; else if (st.level === 'warn') warn++; });
+  if (bad) return `<span class="bad">${bad} overdue</span>`;
+  if (warn) return `<span class="warn">${warn} due soon</span>`;
+  return list.length ? 'all on track' : '';
+}
+
+function fmtMoneyShort(n){
+  if (n >= 1000) return '€' + (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  return '€' + Math.round(n);
+}
+
+function renderHero({ todayItems, onTrack, totalOwed, shoppingCount, placeNotes, reminderCount }){
+  const overdue = todayItems.filter(t => t.sortKey < 0).length;
+  const dueToday = todayItems.filter(t => t.sortKey === 0).length;
+  const next7 = todayItems.filter(t => t.sortKey > 0).length;
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const dateStr = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+  let line;
+  if (overdue + dueToday === 0 && next7 === 0) line = 'All clear — nothing due in the next 7 days.';
+  else if (overdue + dueToday === 0) line = `Nothing due today. ${next7} coming up this week.`;
+  else line = [overdue ? `${overdue} overdue` : '', dueToday ? `${dueToday} due today` : ''].filter(Boolean).join(' · ');
+
+  const tile = (display, isZero, label, cls, target) => `
+    <button class="hero-tile ${cls} ${isZero ? 'zero' : ''}" onclick="jumpTo('${target}')">
+      <div class="num">${display}</div><div class="lbl">${label}</div>
+    </button>`;
+  const chips = [];
+  if (shoppingCount) chips.push(`<button class="hero-chip" onclick="jumpTo('shopping')">Shopping · ${shoppingCount}</button>`);
+  if (placeNotes) chips.push(`<button class="hero-chip" onclick="jumpTo('places')">Places · ${placeNotes}</button>`);
+  if (reminderCount) chips.push(`<button class="hero-chip" onclick="jumpTo('reminders')">Reminders · ${reminderCount}</button>`);
+  if (onTrack) chips.push(`<span class="hero-chip">${onTrack} on track</span>`);
+
+  document.getElementById('statusBar').innerHTML = `
+    <div class="hero">
+      <div class="hero-top">
+        <div class="hero-greet">${greet}, Tarek</div>
+        <div class="hero-date">${dateStr}</div>
+      </div>
+      <div class="hero-line">${line}</div>
+      <div class="hero-tiles">
+        ${tile(overdue, overdue === 0, 'Overdue', 'bad', 'today')}
+        ${tile(dueToday, dueToday === 0, 'Today', 'warn', 'today')}
+        ${tile(next7, next7 === 0, 'Next 7d', 'slate', 'today')}
+        ${tile(fmtMoneyShort(totalOwed), totalOwed === 0, 'Owed', 'sage', 'debts')}
+      </div>
+      <div class="hero-chips">
+        ${chips.join('')}
+        <span class="hero-tools"><a onclick="setAllSections(true)">collapse all</a> · <a onclick="setAllSections(false)">expand all</a></span>
+      </div>
+    </div>`;
+}
+
 function render(){
   let overdue = 0, dueSoon = 0, ok = 0;
 
@@ -811,7 +919,7 @@ function render(){
     });
   });
   todayItems.sort((a,b) => a.sortKey - b.sortKey);
-  const todaySection = document.getElementById('todaySection');
+  const todaySection = document.getElementById('section-today');
   if (todayItems.length === 0) {
     todaySection.style.display = 'none';
   } else {
@@ -839,16 +947,19 @@ function render(){
   petItems.forEach(tally);
   document.getElementById('petsCards').innerHTML = petItems.map(cardHTML).join('') || '<div class="empty">No pets tracked yet.</div>';
   document.getElementById('petsCount').textContent = `${petItems.length} tracked`;
+  document.getElementById('petsSummary').innerHTML = groupSummary(petItems);
 
   const plantItems = items.filter(i => i.category === 'plant');
   plantItems.forEach(tally);
   document.getElementById('plantsCards').innerHTML = plantItems.map(cardHTML).join('') || '<div class="empty">No plant schedules yet.</div>';
   document.getElementById('plantsCount').textContent = `${plantItems.length} tracked`;
+  document.getElementById('plantsSummary').innerHTML = groupSummary(plantItems);
 
   const otherItems = items.filter(i => i.category === 'other');
   otherItems.forEach(tally);
   document.getElementById('otherCards').innerHTML = otherItems.map(cardHTML).join('') || '<div class="empty">Nothing here yet — water filters, smoke detectors, HVAC filters, etc. can go here.</div>';
   document.getElementById('otherCount').textContent = `${otherItems.length} tracked`;
+  document.getElementById('otherSummary').innerHTML = groupSummary(otherItems);
 
   // Places
   const placeCards = places.map(p => {
@@ -955,11 +1066,10 @@ function render(){
   const pendingNotes = places.reduce((sum, p) => sum + (p.place_notes || []).filter(n => n.status === 'active').length, 0);
   document.getElementById('placesSummary').innerHTML = pendingNotes ? `<span class="warn">${pendingNotes} pending</span>` : '';
 
-  document.getElementById('statusBar').innerHTML = `
-    <div class="status-pill"><span class="dot" style="background:var(--bad)"></span>${overdue} overdue</div>
-    <div class="status-pill"><span class="dot" style="background:var(--warn)"></span>${dueSoon} due soon</div>
-    <div class="status-pill"><span class="dot" style="background:var(--ok)"></span>${ok} on track</div>
-  `;
+  renderHero({
+    todayItems, onTrack: ok, totalOwed,
+    shoppingCount: shoppingItems.length, placeNotes: pendingNotes, reminderCount: reminders.length
+  });
 }
 
 async function markDone(itemId, cadenceMonths){
@@ -1216,11 +1326,34 @@ function toggleSection(name){
   localStorage.setItem('los_collapsed', JSON.stringify(state));
 }
 
+const SECTION_NAMES = ['today','pets','plants','other','places','reminders','shopping','debts'];
+
 function restoreCollapsedState(){
   const state = JSON.parse(localStorage.getItem('los_collapsed') || '{}');
-  ['places','reminders','shopping','debts'].forEach(name => {
+  SECTION_NAMES.forEach(name => {
     if (state[name]) document.getElementById('section-' + name)?.classList.add('collapsed');
   });
+}
+
+function setAllSections(collapsed){
+  const state = JSON.parse(localStorage.getItem('los_collapsed') || '{}');
+  SECTION_NAMES.forEach(name => {
+    const el = document.getElementById('section-' + name);
+    if (!el) return;
+    el.classList.toggle('collapsed', collapsed);
+    state[name] = collapsed;
+  });
+  localStorage.setItem('los_collapsed', JSON.stringify(state));
+}
+
+function jumpTo(name){
+  const el = document.getElementById('section-' + name);
+  if (!el || el.style.display === 'none') return;
+  el.classList.remove('collapsed');
+  const state = JSON.parse(localStorage.getItem('los_collapsed') || '{}');
+  state[name] = false;
+  localStorage.setItem('los_collapsed', JSON.stringify(state));
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 let reminders = [];
