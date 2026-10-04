@@ -852,7 +852,7 @@ function render(){
 
   // Places
   const placeCards = places.map(p => {
-    const notes = (p.place_notes || []).filter(n => n.status === 'pending');
+    const notes = (p.place_notes || []).filter(n => n.status === 'active');
     const rows = notes.map(n => `
       <div class="note-row">
         <button class="note-check" onclick="resolveNote('${n.id}')" title="mark done"></button>
@@ -952,7 +952,7 @@ function render(){
   document.getElementById('debtsSummary').innerHTML = owedCount ? `<span class="warn">€${totalOwed.toFixed(2)} outstanding</span>` : '';
 
   // Places summary — pending notes across all places
-  const pendingNotes = places.reduce((sum, p) => sum + (p.place_notes || []).filter(n => n.status === 'pending').length, 0);
+  const pendingNotes = places.reduce((sum, p) => sum + (p.place_notes || []).filter(n => n.status === 'active').length, 0);
   document.getElementById('placesSummary').innerHTML = pendingNotes ? `<span class="warn">${pendingNotes} pending</span>` : '';
 
   document.getElementById('statusBar').innerHTML = `
@@ -988,7 +988,7 @@ async function resolveNote(noteId){
   const note = document.getElementById('syncNote');
   try {
     const r = await fetch(`${REST}/notes?id=eq.${noteId}`, {
-      method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ status: 'done' })
+      method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ status: 'resolved' })
     });
     if (!r.ok) throw new Error(`update ${r.status}`);
     note.textContent = 'saved'; note.classList.remove('error');
@@ -1007,7 +1007,7 @@ async function addNote(placeId){
   try {
     const r = await fetch(`${REST}/notes`, {
       method: 'POST', headers: authHeaders(),
-      body: JSON.stringify({ category: 'place', place_id: placeId, note_date: today, note: text, status: 'pending' })
+      body: JSON.stringify({ category: 'place', place_id: placeId, note_date: today, note: text, status: 'active' })
     });
     if (!r.ok) throw new Error(`insert ${r.status}`);
     note.textContent = 'saved'; note.classList.remove('error');
