@@ -1411,7 +1411,7 @@ async function loadState(){
   try {
     const [itemsRes, placesRes, remindersRes, shoppingRes, debtsRes] = await Promise.all([
       fetch(`${REST}/recurring_items?select=*,recurring_log(log_date,note)`, { headers: authHeaders() }),
-      fetch(`${REST}/places?select=*,place_notes:notes!place_id(*)&place_notes.category=eq.place`, { headers: authHeaders() }),
+      fetch(`${REST}/places?select=*,place_notes:notes!notes_place_id_fkey(*)&place_notes.category=eq.place`, { headers: authHeaders() }),
       fetch(`${REST}/reminders?status=eq.pending&order=due_date.asc.nullslast`, { headers: authHeaders() }),
       fetch(`${REST}/shopping_items?status=eq.pending&order=category.asc,created_at.asc`, { headers: authHeaders() }),
       fetch(`${REST}/debts?order=status.asc,created_at.desc`, { headers: authHeaders() })
