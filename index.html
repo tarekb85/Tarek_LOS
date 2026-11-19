@@ -1117,21 +1117,36 @@ function render(){
   });
 }
 
+// The household's calendar date (Europe/Amsterdam), independent of the browser's time zone and locale.
+// Built from formatToParts with an explicit Gregorian calendar and Latin digits, never from a formatted string.
+// Same body as tarekb85/tlos app/src/lib/household-date.ts (2b-db design 4a.2), without the TypeScript types.
+function householdDate(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Amsterdam',
+    calendar: 'gregory',
+    numberingSystem: 'latn',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const get = (t) => parts.find((p) => p.type === t)?.value;
+  const s = `${get('year')}-${get('month')}-${get('day')}`;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) throw new Error('household date: unexpected format');
+  return s;
+}
+
+// 2b-db: one atomic request. The database records the completion for the household date, computes next_due, and
+// returns the existing row if this item is already done for that date. cadenceMonths is no longer needed here (the
+// callers are unchanged).
 async function markDone(itemId, cadenceMonths){
   const note = document.getElementById('syncNote');
-  const today = new Date().toISOString().slice(0,10);
-  const nextDue = addMonths(today, cadenceMonths);
   try {
-    const r1 = await fetch(`${REST}/recurring_items?id=eq.${itemId}`, {
-      method: 'PATCH', headers: authHeaders(),
-      body: JSON.stringify({ last_done: today, next_due: nextDue })
-    });
-    if (!r1.ok) throw new Error(`update ${r1.status}`);
-    const r2 = await fetch(`${REST}/recurring_log`, {
+    const today = householdDate();
+    const r = await fetch(`${REST}/rpc/mark_recurring_done`, {
       method: 'POST', headers: authHeaders(),
-      body: JSON.stringify({ item_id: itemId, log_date: today, note: 'Marked done via dashboard' })
+      body: JSON.stringify({ p_item_id: itemId, p_done_on: today, p_note: 'Marked done via dashboard' })
     });
-    if (!r2.ok) throw new Error(`log ${r2.status}`);
+    if (!r.ok) throw new Error(`mark done ${r.status}`);
     note.textContent = 'saved'; note.classList.remove('error');
     await loadState();
   } catch (e) {
